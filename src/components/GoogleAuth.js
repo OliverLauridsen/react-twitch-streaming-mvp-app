@@ -1,8 +1,8 @@
 import React, { Component } from "react";
+import {connect} from 'react-redux';
+import { signIn, signOut } from '../actions/';
 
 class GoogleAuth extends Component {
-  state = { isSignedIn: null };
-
   componentDidMount() {
     // window. because we need to tell react that the variable is available in window scope.
     window.gapi.load("client:auth2", () =>
@@ -14,28 +14,32 @@ class GoogleAuth extends Component {
         })
         .then(() => {
           this.auth = window.gapi.auth2.getAuthInstance();
-          this.setState({ isSignedIn: this.auth.isSignedIn.get() });
+          this.onAuthChange(this.auth.isSignedIn.get()); 
           this.auth.isSignedIn.listen(this.onAuthChange);
         })
     );
   }
 
-  onAuthChange = ()  => {
-      this.setState({ isSignedIn: this.auth.isSignedIn.get() });
-  }
-
   onSignInClick = () => {
-      this.auth.signIn();
+    this.auth.signIn();
   }
 
   onSignOutClick = () => {
     this.auth.signOut();
   }
 
+  onAuthChange = (isSignedIn)  => {
+    if(isSignedIn) {
+      this.props.signIn(this.auth.currentUser.get().getId());
+    } else {
+      this.props.signOut();
+    }
+  }
+
   renderAuthButton() {
-    if (this.state.isSignedIn === null) {
-      return <div> I don't know if they're signed in </div>
-    } else if (this.state.isSignedIn){
+    if (this.props.isSignedIn === null) {
+      return <div> </div>
+    } else if (this.props.isSignedIn){
         return (
         <button className="ui red google button" onClick={this.onSignOutClick}>
             <i className="google icon" />
@@ -58,4 +62,11 @@ class GoogleAuth extends Component {
   }
 }
 
-export default GoogleAuth;
+const mapStateToProps = state => {
+  return { isSignedIn: state.auth.isSignedIn }
+}
+
+export default connect(mapStateToProps, {
+  signIn,
+  signOut
+})(GoogleAuth);
